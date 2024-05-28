@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace GardenApi;
 
 public class Program
@@ -7,29 +9,58 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        builder.Services.AddAuthorization();
-
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
-        builder.Services.AddControllers();
-        builder.Services.AddHttpClient();
+        ConfigureServices(builder.Services, builder.Configuration);
 
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
+        Configure(app);
+
+        app.Run();
+    }
+
+    private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    {
+        // Add authorization service
+        services.AddAuthorization();
+
+        // Add Swagger services
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen();
+
+        // Add controllers support
+        services.AddControllers();
+
+        // Add HttpClient service
+        services.AddHttpClient();
+
+        // Add DbContext with PostgreSQL connection
+        services.AddDbContext<ApplicationContext>(options => 
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+    }
+
+    private static void Configure(WebApplication app)
+    {
         if (app.Environment.IsDevelopment())
         {
+            // Use Swagger in development environment
             app.UseSwagger();
             app.UseSwaggerUI();
+
+            // Use developer exception page
+            app.UseDeveloperExceptionPage();
         }
 
+        // Enable HTTPS redirection
         app.UseHttpsRedirection();
 
+        // Use routing
+        app.UseRouting();
+
+        // Use authorization
         app.UseAuthorization();
-        
-        app.MapControllers();
-        
-        app.Run();
+
+        // Map controller routes
+        app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
     }
 }
