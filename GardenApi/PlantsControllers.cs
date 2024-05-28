@@ -37,6 +37,7 @@ namespace GardenApi
                     
                     plantJson.data.Add(new PlantData()
                     {
+                        id = searchPlantData.id,
                         scientific_name = searchPlantData.scientific_name[0],
                         common_name = searchPlantData.common_name,
                         cycle = searchPlantData.cycle,
@@ -50,7 +51,7 @@ namespace GardenApi
                 }
                 else if (string.IsNullOrEmpty(id))
                 {
-                    apiUrl = $"https://perenual.com/api/pest-disease-list?key={_key}&species_id={name}";
+                    apiUrl = $"https://perenual.com/api/species-list?key={_key}&species_id={name}";
                     var speciesResponse = await client.GetStringAsync(apiUrl);
                     var searchPlantData = JsonConvert.DeserializeObject<SearchPlant>(speciesResponse);
 
@@ -65,6 +66,7 @@ namespace GardenApi
 
                         plantJson.data.Add(new PlantData()
                         {
+                            id = plant.id,
                             scientific_name = plant.scientific_name[0],
                             common_name = plant.common_name,
                             cycle = plant.cycle,

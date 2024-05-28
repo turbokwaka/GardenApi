@@ -6,6 +6,7 @@ public class PlantJson
 }
 public class PlantData
 {
+    public int id { get; set; }
     public string scientific_name { get; set; }
     public string common_name { get; set; }
     public string cycle { get; set; }
