@@ -17,54 +17,87 @@ namespace GardenApi
         }
 
         [HttpGet("plant/search")]
-        public async Task<IActionResult> SearchPlants([FromQuery] string name)
+        public async Task<IActionResult> SearchPlants([FromQuery] string? name = null, [FromQuery] string? plantId = null)
         {
-            using (var client = new HttpClient())
+            var client = new HttpClient();
+            var plantJson = new PlantJson { data = new List<PlantData>() };
+            string url;
+
+            if (name != null)
             {
-                // model to serialize
-                var plantJson = new PlantJson { data = new List<PlantData>() };
+                Console.WriteLine("\nStarted plants searching by name: " + name);
+                url = $"https://perenual.com/api/species-list?key={_key}&q={name}";
+                var searchPlantResponse = await client.GetStringAsync(url);
+                var searchPlantData = JsonConvert.DeserializeObject<SearchPlant>(searchPlantResponse);
 
-                string apiUrl;
-
-                apiUrl = $"https://perenual.com/api/species-list?key={_key}&q={name}";
-                var speciesResponse = await client.GetStringAsync(apiUrl);
-                var searchPlantData = JsonConvert.DeserializeObject<SearchPlant>(speciesResponse);
-
-                foreach (var plant in searchPlantData.data.Take(2))
+                foreach (var plant in searchPlantData!.data.Take(5))
                 {
                     if (plant.cycle.Contains("Upgrade Plans To Premium/Supreme"))
                         continue;
 
                     var guideUrl =
                         $"https://perenual.com/api/species-care-guide-list?key={_key}&species_id={plant.id}";
-                    var guideResponse = await client.GetStringAsync(guideUrl);
-                    var guidePlantData = JsonConvert.DeserializeObject<GuidePlant>(guideResponse);
-
+                    var guidePlantResponse = await client.GetStringAsync(guideUrl);
+                    var guidePlantData = JsonConvert.DeserializeObject<GuidePlant>(guidePlantResponse);
+                    
+                    bool imageIsValid = await UrlChecker.IsUrlValid(plant.default_image.original_url) ? true : false;
+                    
                     plantJson.data.Add(new PlantData()
                     {
-                        id = plant.id,
+                        plantId = plant.id,
                         scientific_name = plant.scientific_name[0],
                         common_name = plant.common_name,
                         cycle = plant.cycle,
                         watering_guide = guidePlantData.data[0].section[0].description,
-                        pruning_guide = guidePlantData.data[0].section[1].description,
-                        sunlight_guide = guidePlantData.data[0].section[2].description,
-                        image = plant.default_image != null
-                            ? plant.default_image.original_url
+                        pruning_guide = guidePlantData.data[0].section[2].description,
+                        sunlight_guide = guidePlantData.data[0].section[1].description,
+                        image = imageIsValid
+                            ? plant.default_image.original_url 
                             : "https://postimg.cc/0rBn2kDn"
                     });
                     Console.WriteLine("done");
                 }
-
-
-                var jsonResponse = JsonConvert.SerializeObject(plantJson);
-                return new ContentResult
-                {
-                    Content = jsonResponse,
-                    ContentType = "application/json",
-                    StatusCode = 200
-                };
             }
+            if (plantId != null)
+            {
+                Console.WriteLine("\nStarted plants searching by id: " + plantId);
+                url = $"https://perenual.com/api/species/details/{plantId}?key={_key}";
+                var detailsPlantResponse = await client.GetStringAsync(url);
+                var detailsPlantData = JsonConvert.DeserializeObject<SearchPlantData>(detailsPlantResponse);
+
+                url = $"https://perenual.com/api/species-care-guide-list?key={_key}&species_id={plantId}";
+                var guidePlantResponse = await client.GetStringAsync(url);
+                var guidePlantData = JsonConvert.DeserializeObject<GuidePlant>(guidePlantResponse);
+                
+                bool imageIsValid = await UrlChecker.IsUrlValid(detailsPlantData.default_image.original_url) ? true : false;
+                
+                plantJson.data.Add(new PlantData()
+                {
+                    plantId = int.Parse(plantId),
+                    scientific_name = detailsPlantData.scientific_name[0],
+                    common_name = detailsPlantData.common_name,
+                    cycle = detailsPlantData.cycle,
+                    watering_guide = guidePlantData.data[0].section[0].description,
+                    pruning_guide = guidePlantData.data[0].section[2].description,
+                    sunlight_guide = guidePlantData.data[0].section[1].description,
+                    image = imageIsValid
+                        ? detailsPlantData.default_image.original_url
+                        : "https://postimg.cc/0rBn2kDn"
+                });
+            }
+
+            if (plantJson.data.Count == 0)
+            {
+                return NotFound("No plants found.");
+            }
+            
+            var jsonResponse = JsonConvert.SerializeObject(plantJson);
+            return new ContentResult
+            {
+                Content = jsonResponse,
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
         [HttpGet("plant/user-plants-list")]
@@ -153,11 +186,12 @@ namespace GardenApi
         }
 
         [HttpDelete("plant/delete")]
-        public async Task<IActionResult> DeletePlant([FromBody] PlantEntity plant)
+        public async Task<IActionResult> DeletePlant(int userId, int plantId)
         {
+            var plant = _context.Plants.FirstOrDefault(p => p.UserId == userId && p.PlantId == plantId);
             if (plant == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
             _context.Plants.Remove(plant);

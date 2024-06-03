@@ -13,13 +13,19 @@ public class PlantEntity
     public int? UserId { get; set; }
     // actual data
     [Required]
-    public string name { get; set; }
+    public string scientific_name { get; set; }
+    [Required]
+    public string common_name { get; set; }
+    [Required]
+    public string cycle { get; set; }
+    [Required]
+    public string watering_guide { get; set; }
+    [Required]
+    public string pruning_guide { get; set; }
+    [Required]
+    public string sunlight_guide { get; set; }
+    [Required]
     public string image { get; set; }
-    public DateTime wateringFrequency { get; set; }
     [Required]
-    public DateTime pruningFrequency { get; set; }
-    [Required]
-    public DateTime lastWateringDate { get; set; }
-    [Required]
-    public DateTime lastPruningDate { get; set; }
+    public string lastWateringDate { get; set; }
 }
