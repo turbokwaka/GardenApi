@@ -8,7 +8,7 @@ namespace GardenApi
     [Route("[controller]")]
     public class PlantsController : ControllerBase
     {
-        private readonly string _key = "sk-8i2U66567185637a85692";
+        private readonly string _key = "sk-IezH6630ee7f8f86e5294";
         private readonly ApplicationContext _context;
 
         public PlantsController(ApplicationContext context)
@@ -39,8 +39,9 @@ namespace GardenApi
                         $"https://perenual.com/api/species-care-guide-list?key={_key}&species_id={plant.id}";
                     var guidePlantResponse = await client.GetStringAsync(guideUrl);
                     var guidePlantData = JsonConvert.DeserializeObject<GuidePlant>(guidePlantResponse);
+
                     
-                    bool imageIsValid = await UrlChecker.IsUrlValid(plant.default_image.original_url) ? true : false;
+                    bool imageIsValid = plant.default_image != null && await UrlChecker.IsUrlValid(plant.default_image.original_url) ? true : false;
                     
                     plantJson.data.Add(new PlantData()
                     {
@@ -117,6 +118,22 @@ namespace GardenApi
                 .ToListAsync();
             
             var jsonResponse = JsonConvert.SerializeObject(plants);
+            return new ContentResult
+            {
+                Content = jsonResponse,
+                ContentType = "application/json",
+                StatusCode = 200
+            };
+        }
+
+        [HttpGet("plant/all-users-list")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var allUsers = await _context.Users
+                .Include(u => u.Plants)
+                .ToListAsync();
+
+            var jsonResponse = JsonConvert.SerializeObject(allUsers);
             return new ContentResult
             {
                 Content = jsonResponse,
