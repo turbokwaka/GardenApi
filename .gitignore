@@ -1,2 +1,5 @@
-/GardenApi/obj/
-/GardenApi/bin/
+GardenApi/bin/
+GardenApi/obj/
+GardenApi/packages/
+GardenApi/riderModule.iml
+GardenApi/_ReSharper.Caches/

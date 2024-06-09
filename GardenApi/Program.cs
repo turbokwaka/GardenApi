@@ -37,6 +37,17 @@ public class Program
         // Add DbContext with PostgreSQL connection
         services.AddDbContext<ApplicationContext>(options => 
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+
+        // Add CORS policy
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAllOrigins", builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            });
+        });
     }
 
     private static void Configure(WebApplication app)
@@ -56,6 +67,9 @@ public class Program
 
         // Use routing
         app.UseRouting();
+
+        // Use CORS
+        app.UseCors("AllowAllOrigins");
 
         // Use authorization
         app.UseAuthorization();
